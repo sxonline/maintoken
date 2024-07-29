@@ -127,19 +127,12 @@ contract SUNXToken is ERC20, Ownable, Pausable {
 
 
 function transferBasedOnMining(address recipient, uint256 amount, bytes32 secret) external onlySignatory whenNotPaused {
-    bytes32 approveHash = keccak256(abi.encodePacked("transfer", recipient, amount, secret));
-        emit Transactioncall(approveHash);
-
-    
-
-
+        bytes32 approveHash = keccak256(abi.encodePacked("transfer", recipient, amount, secret));
         require(hasApproval(approveHash), "Not enough approvals");
-
         uint256 allowedAmount = allowableTransferAmount();
         require(balanceOf(address(this)) >= amount, "Not enough tokens in the contract");
         require(totalSupply() - balanceOf(address(this)) + amount - INITIAL_OWNER_SUPPLY <= allowedAmount, "Transfer amount exceeds allowable limit");
         require(amount <= MAX_TRANSFER_LIMIT, "Transfer amount exceeds maximum transfer limit");
-
         _transfer(address(this), recipient, amount);
         emit TokensTransferred(recipient, amount);
 
@@ -149,7 +142,6 @@ function transferBasedOnMining(address recipient, uint256 amount, bytes32 secret
     function burnBasedOnMining(uint256 amount, bytes32 secret) external onlySignatory whenNotPaused {
         bytes32 approveHash = keccak256(abi.encodePacked("burn", amount, secret));
         require(hasApproval(approveHash), "Not enough approvals");
-
         require(balanceOf(address(this)) >= amount, "Not enough tokens in the contract");
         _burn(address(this), amount);
         emit TokensBurned(amount);
