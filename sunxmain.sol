@@ -26,6 +26,9 @@ contract SUNXToken is ERC20, Ownable, Pausable {
     event TokensBurned(uint256 amount);
     event TransactionApproved(bytes32 indexed approveHash, address indexed approver);
     event Transactioncall(bytes32 indexed approveHash);
+    event ApproveHashCheck(bytes32 indexed approveHash);
+    event ApproveCount(uint256 amount);
+
 
     event PauseApproved(bytes32 indexed approveHash, address indexed approver);
     event UnpauseApproved(bytes32 indexed approveHash, address indexed approver);
@@ -39,8 +42,7 @@ contract SUNXToken is ERC20, Ownable, Pausable {
 
         signatories = _signatories;
         approvalThreshold = _threshold;
-
-        //transferOwnership(initialOwner);
+ 
     }
 
     modifier onlySignatory() {
@@ -109,30 +111,43 @@ contract SUNXToken is ERC20, Ownable, Pausable {
     }
 
     function unpause(bytes32 approveHash) external onlySignatory {                                                                    
-                                                                    /**
-                                                                     * @dev Function to transfer tokens based on mining conditions. 
-                                                                     * The function requires enough approval, checks if there's sufficient balance in contract and limit of maximum transfer amount.
-                                                                     * Emits an event `TokensTransferred` when the transaction is successful.
-                                                                     * Only signatories can call this function and it cannot be called while contract is paused.
-                                                                     * @param recipient The address to receive the tokens.
-                                                                     * @param amount The amount of tokens to transfer.
-                                                                     * @param secret A secret key for the transaction approval.
-                                                                     */
+                                                                   
         require(hasUnpauseApproval(approveHash), "Not enough approvals");
         unpauseApprovals[approveHash] = 0;
         _unpause();
     }
 
- 
+  
+
+  function approveCheck(address recipient, uint256 amount, address secret) external onlySignatory whenNotPaused {
+
+        bytes32 approveHash = keccak256(abi.encodePacked("transfer", recipient, amount, secret));
+        emit ApproveHashCheck(approveHash);
+        emit ApproveCount(approvals[approveHash]);
 
 
-function transferBasedOnMining(address recipient, uint256 amount, bytes32 secret) external onlySignatory whenNotPaused {
+  }
+
+function transferBasedOnMining(address recipient, uint256 amount, address secret) external onlySignatory whenNotPaused {
+/**
+* @dev Function to transfer tokens based on mining conditions. 
+* The function requires enough approval, checks if there's sufficient balance in contract and limit of maximum transfer amount.
+* Emits an event `TokensTransferred` when the transaction is successful.
+* Only signatories can call this function and it cannot be called while contract is paused.
+* @param recipient The address to receive the tokens.
+* @param amount The amount of tokens to transfer.
+* @param secret A secret key for the transaction approval.
+*/
         bytes32 approveHash = keccak256(abi.encodePacked("transfer", recipient, amount, secret));
         require(hasApproval(approveHash), "Not enough approvals");
         uint256 allowedAmount = allowableTransferAmount();
         require(balanceOf(address(this)) >= amount, "Not enough tokens in the contract");
         require(totalSupply() - balanceOf(address(this)) + amount - INITIAL_OWNER_SUPPLY <= allowedAmount, "Transfer amount exceeds allowable limit");
         require(amount <= MAX_TRANSFER_LIMIT, "Transfer amount exceeds maximum transfer limit");
+      delete approvals[approveHash];
+          for (uint256 i = 0; i < signatories.length; i++) {
+        delete approvedBy[approveHash][signatories[i]];
+    }
         _transfer(address(this), recipient, amount);
         emit TokensTransferred(recipient, amount);
 
@@ -145,8 +160,11 @@ function transferBasedOnMining(address recipient, uint256 amount, bytes32 secret
         require(balanceOf(address(this)) >= amount, "Not enough tokens in the contract");
         _burn(address(this), amount);
         emit TokensBurned(amount);
+        delete approvals[approveHash];
+          for (uint256 i = 0; i < signatories.length; i++) {
+        delete approvedBy[approveHash][signatories[i]];
+    }
 
-        approvals[approveHash] = 0;
     }
 
     function allowableTransferAmount() public view returns (uint256) {
@@ -156,16 +174,7 @@ function transferBasedOnMining(address recipient, uint256 amount, bytes32 secret
         }
     }
 
-    function cleanApprovalData(bytes32 approveHash) external onlyOwner {
-    // Delete the approval count
-    delete approvals[approveHash];
-
-    // Delete the approvedBy mapping for the specified approveHash
-    for (uint256 i = 0; i < signatories.length; i++) {
-        delete approvedBy[approveHash][signatories[i]];
-    }
-}
+ 
 
 
 }
-
