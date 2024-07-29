@@ -106,14 +106,26 @@ contract SUNXToken is ERC20, Ownable, Pausable {
 
     function pause(bytes32 approveHash) external onlySignatory {
         require(hasPauseApproval(approveHash), "Not enough approvals");
-        pauseApprovals[approveHash] = 0;
-        _pause();
+
+
+        delete pauseApprovals[approveHash];
+          for (uint256 i = 0; i < signatories.length; i++) {
+        delete pauseApprovedBy[approveHash][signatories[i]];
+    }
+            _pause();
     }
 
     function unpause(bytes32 approveHash) external onlySignatory {                                                                    
                                                                    
         require(hasUnpauseApproval(approveHash), "Not enough approvals");
-        unpauseApprovals[approveHash] = 0;
+
+        delete unpauseApprovals[approveHash];
+          for (uint256 i = 0; i < signatories.length; i++) {
+        delete unpauseApprovedBy[approveHash][signatories[i]];
+    }
+
+
+
         _unpause();
     }
 
